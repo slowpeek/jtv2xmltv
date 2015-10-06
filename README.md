@@ -1,2 +1,2 @@
 # jtv2xmltv
-Convert jtv.zip to xmltv.xml
+Converts jtv.zip to xmltv.xml
