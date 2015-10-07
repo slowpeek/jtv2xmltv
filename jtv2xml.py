@@ -99,7 +99,10 @@ def read_jtv(chname, chid):
         char = struct.unpack('c', pdt.read(1))[0]
         chars.append(char.decode('cp1251'))
       title = title.join(chars).encode('utf-8')
-    except:
+    except Exception, e:
+      print '\n\n\n\tSomething went wrong!\nFile "%s.pdt" is not fully decoded!\n' % chname
+      print 'Error message:\n%s\n\nDebug information:' % e
+      print 'chname - %s\nndx.offset - %X\npdt.offset - %X\nfiletime   - %X\n' % (chname, 12*i+12, pdt_offset, str_time)
       ndx.close()
       pdt.close()
       break
