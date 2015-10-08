@@ -23,6 +23,10 @@ from zipfile import *
 jtvzip = 'jtv.zip'
 xmltv = 'xmltv.xml'
 timezone = '+0200'
+zip_encode = 'cp866'
+#zip_encode = 'utf-8'
+pdt_encode = 'cp1251'
+
 
 def ft_to_dt(ft):
   microseconds = ft / 10
@@ -37,84 +41,92 @@ def read_jtv_channels(jtvzip):
 
   for item in jtv.namelist():
     if '.ndx' in item:
-      channels.append(re.compile('(.*).ndx$').match(item).group(1).decode('cp866').encode('utf-8'))
+      if zip_encode == 'utf-8':
+        channels.append(re.compile('(.*).ndx$').match(item).group(1))
+      else: 
+        channels.append(re.compile('(.*).ndx$').match(item).group(1).decode(zip_encode).encode('utf-8'))
 
   jtv.close()
   return channels
 
+
 def write_xml_channels(channels, xmltv):
   chcount = 1000
-  xmlfile = open(xmltv, 'w')
-
-  xmlfile.write('<?xml version="1.0" encoding="utf-8" ?>\n')
-  
-  for channel_name in channels:
-    chcount += 1
-    xmlfile.write('<channel id="%d">\n' % chcount)
-    xmlfile.write('\t<display-name>%s</dispay-name>\n' % channel_name)
-    xmlfile.write('</channel>\n')
-
+  with open(xmltv, 'w') as xmlfile:
+    xmlfile.write('<?xml version="1.0" encoding="utf-8" ?>\n')
+    for channel_name in channels:
+      chcount += 1
+      xmlfile.write('<channel id="%d">\n' % chcount)
+      if zip_encode == 'utf-8':
+        xmlfile.write('  <display-name>%s</dispay-name>\n' % channel_name.encode('utf-8'))
+      else:
+        xmlfile.write('  <display-name>%s</dispay-name>\n' % channel_name)
+      xmlfile.write('</channel>\n')
   xmlfile.close()
+
 
 def write_xml_schedule(chname, chid, title, str_time, end_time):
   chcount = 0
-  xmlfile = open(xmltv, 'a+')
-  xmlfile.write('<programme start="%s %s" stop="%s %s" channel="%d">\n' % (str_time, timezone, end_time, timezone, chid))
-  xmlfile.write('\t<title lang="ru">%s</title>\n</programme>\n' % title)
+  with open(xmltv, 'a') as xmlfile:
+    xmlfile.write('<programme start="%s %s" stop="%s %s" channel="%d">\n' % (str_time, timezone, end_time, timezone, chid))
+    xmlfile.write('  <title lang="ru">%s</title>\n</programme>\n' % title)
   xmlfile.close()
 
+
 def read_jtv(chname, chid):
-  ndx = (chname + '.ndx').decode('utf-8').encode('cp866')
-  pdt = (chname + '.pdt').decode('utf-8').encode('cp866')
+  if zip_encode == 'utf-8':
+    ndx = (chname + '.ndx')
+    pdt = (chname + '.pdt')
+  else:
+    ndx = (chname + '.ndx').decode('utf-8').encode(zip_encode)
+    pdt = (chname + '.pdt').decode('utf-8').encode(zip_encode)
 
-  ndx = open('jtv/' + ndx, 'rb')
-  pdt = open('jtv/' + pdt, 'rb')
-  
-  number = struct.unpack('h', ndx.read(2))[0] # Number of records in .ndx file
-  
-  for i in range(number):
-    str_time = 0 
-    end_time = 0
+  with open('jtv/' + ndx, 'rb') as ndx:
+    with open('jtv/' + pdt, 'rb') as pdt:
+      number = struct.unpack('h', ndx.read(2))[0] # Number of records in .ndx file
+      
+      for i in range(number):
+        str_time = 0 
+        end_time = 0
 
-    ndx.seek((i + 1) * 12 - 8)
-    str_time = struct.unpack('Q', ndx.read(8))[0] # Get program start time in FILETIME format
+        ndx.seek((i + 1) * 12 - 8)
+        str_time = struct.unpack('Q', ndx.read(8))[0] # Get program start time in FILETIME format
 
-    if i < (number - 1):
-      ndx.seek((i + 2) * 12 - 8)
-      end_time = struct.unpack('Q', ndx.read(8))[0]
-    else:
-      end_time = str_time
-    
-    ndx.seek((i + 1) * 12)
-    pdt_offset = struct.unpack('H', ndx.read(2))[0] # Offset pointer to .pdt file
+        if i < (number - 1):
+          ndx.seek((i + 2) * 12 - 8)
+          end_time = struct.unpack('Q', ndx.read(8))[0]
+        else:
+          end_time = str_time # For the last TV-show we know only the start time.
+        
+        ndx.seek((i + 1) * 12)
+        pdt_offset = struct.unpack('H', ndx.read(2))[0] # Offset pointer to .pdt file
 
-    pdt.seek(pdt_offset)
-    poffset = struct.unpack('H', pdt.read(2))[0] # Get characters number of TV-show title.
+        pdt.seek(pdt_offset)
+        poffset = struct.unpack('H', pdt.read(2))[0] # Get TV-show's title characters number.
 
-    chars = []
-    title = str()
-    
-    try:
-      for j in range(poffset):
-        char = struct.unpack('c', pdt.read(1))[0]
-        chars.append(char.decode('cp1251'))
-      title = title.join(chars).encode('utf-8')
-    except Exception, e:
-      print '\n\n\n\tSomething went wrong!\nFile "%s.pdt" is not fully decoded!\n' % chname
-      print 'Error message:\n%s\n\nDebug information:' % e
-      print 'chname - %s\nndx.offset - %X\npdt.offset - %X\nfiletime   - %X\n' % (chname, 12*i+12, pdt_offset, str_time)
-      ndx.close()
-      pdt.close()
-      break
+        chars = []
+        title = str()
+        
+        try:
+          for j in range(poffset):
+            char = struct.unpack('c', pdt.read(1))[0]
+            chars.append(char.decode(pdt_encode))
+          title = title.join(chars).encode('utf-8')
+        except Exception, e:
+          print '\n\n\n\tSomething went wrong!\nFile "%s.pdt" is not fully decoded!\n' % chname
+          print 'Error message:\n%s\n\nDebug information:' % e
+          print 'chname - %s\nndx_offset  - %X\npdt_offset  - %X\npdt_namelen - %X\nfiletime   - %X\n'\
+                 % (chname, 12*i+12, pdt_offset, poffset, str_time)
+          ndx.close()
+          pdt.close()
+          break
 
-    str_time = format(ft_to_dt(str_time), '%Y%m%d%H%M%S')
-    end_time = format(ft_to_dt(end_time), '%Y%m%d%H%M%S')
-
-    write_xml_schedule(chname, chid, title, str_time, end_time)
-
+        str_time = format(ft_to_dt(str_time), '%Y%m%d%H%M%S')
+        end_time = format(ft_to_dt(end_time), '%Y%m%d%H%M%S')
+        write_xml_schedule(chname, chid, title, str_time, end_time)
   ndx.close()
   pdt.close()
-   
+
 
 def main():
   ZipFile('jtv.zip', 'r').extractall('jtv')
