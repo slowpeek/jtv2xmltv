@@ -103,15 +103,15 @@ def main():
   write_xml_channels(channels, xmltv)
 
   for i in range(len(channels)):
-    sys.stdout.write("*")
-    sys.stdout.flush()
     read_jtv(channels[i], i+1)
+
+    sys.stdout.write('*')
+    sys.stdout.flush()
 
   with open(xmltv, 'a') as xmlfile:
     xmlfile.write('</tv>\n')
 
-  sys.stdout.write("\n")
-  print("Done!")
+  sys.stdout.write('\ndone\n')
 
 if __name__ == '__main__':
   main()
