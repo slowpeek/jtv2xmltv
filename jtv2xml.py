@@ -80,9 +80,9 @@ def read_jtv(chname, chid):
   with open('jtv/' + ndx, 'rb') as ndx:
     with open('jtv/' + pdt, 'rb') as pdt:
       number = struct.unpack('h', ndx.read(2))[0] # Number of records in .ndx file
-      
+
       for i in range(number):
-        str_time = 0 
+        str_time = 0
         end_time = 0
 
         ndx.seek((i + 1) * 12 - 8)
@@ -93,7 +93,7 @@ def read_jtv(chname, chid):
           end_time = struct.unpack('Q', ndx.read(8))[0]
         else:
           end_time = None # For the last TV-show we know only the start time.
-        
+
         ndx.seek((i + 1) * 12)
         pdt_offset = struct.unpack('H', ndx.read(2))[0] # Offset pointer to .pdt file
 
