@@ -22,7 +22,6 @@ from zipfile import *
 
 jtvzip = 'jtv.zip'
 xmltv = 'xmltv.xml'
-timezone = '+0200'
 zip_encode = 'cp866'
 #zip_encode = 'utf-8'
 pdt_encode = 'cp1251'
@@ -68,7 +67,7 @@ def write_xml_channels(channels, xmltv):
 def write_xml_schedule(chname, chid, title, str_time, end_time):
   chcount = 0
   with open(xmltv, 'a') as xmlfile:
-    xmlfile.write('<programme start="%s %s" stop="%s %s" channel="%d">\n' % (str_time, timezone, end_time, timezone, chid))
+    xmlfile.write('<programme start="%s" stop="%s" channel="%d">\n' % (str_time, end_time, chid))
     xmlfile.write('  <title lang="ru">%s</title>\n</programme>\n' % title)
   xmlfile.close()
 
