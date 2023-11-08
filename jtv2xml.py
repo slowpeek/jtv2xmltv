@@ -71,7 +71,7 @@ def write_xml_schedule(chname, chid, title, str_time, end_time):
       xmlfile.write('<programme channel="%d" start="%s">\n' % (chid, str_time))
     else:
       xmlfile.write('<programme channel="%d" start="%s" stop="%s">\n' % (chid, str_time, end_time))
-    xmlfile.write('  <title>%s</title>\n</programme>\n' % title)
+    xmlfile.write('  <title>%s</title>\n</programme>\n' % title.replace('&', '&amp;'))
   xmlfile.close()
 
 
