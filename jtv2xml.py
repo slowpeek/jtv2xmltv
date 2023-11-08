@@ -67,8 +67,11 @@ def write_xml_channels(channels, xmltv):
 def write_xml_schedule(chname, chid, title, str_time, end_time):
   chcount = 0
   with open(xmltv, 'a') as xmlfile:
-    xmlfile.write('<programme start="%s" stop="%s" channel="%d">\n' % (str_time, end_time, chid))
-    xmlfile.write('  <title lang="ru">%s</title>\n</programme>\n' % title)
+    if end_time is None:
+      xmlfile.write('<programme channel="%d" start="%s">\n' % (chid, str_time))
+    else:
+      xmlfile.write('<programme channel="%d" start="%s" stop="%s">\n' % (chid, str_time, end_time))
+    xmlfile.write('  <title>%s</title>\n</programme>\n' % title)
   xmlfile.close()
 
 
@@ -95,7 +98,7 @@ def read_jtv(chname, chid):
           ndx.seek((i + 2) * 12 - 8)
           end_time = struct.unpack('Q', ndx.read(8))[0]
         else:
-          end_time = str_time # For the last TV-show we know only the start time.
+          end_time = None # For the last TV-show we know only the start time.
         
         ndx.seek((i + 1) * 12)
         pdt_offset = struct.unpack('H', ndx.read(2))[0] # Offset pointer to .pdt file
@@ -121,11 +124,12 @@ def read_jtv(chname, chid):
           break
 
         str_time = format(ft_to_dt(str_time), '%Y%m%d%H%M%S')
-        end_time = format(ft_to_dt(end_time), '%Y%m%d%H%M%S')
+        if end_time is not None:
+          end_time = format(ft_to_dt(end_time), '%Y%m%d%H%M%S')
+
         write_xml_schedule(chname, chid, title, str_time, end_time)
   ndx.close()
   pdt.close()
-
 
 def main():
   ZipFile(jtvzip, 'r').extractall('jtv')
