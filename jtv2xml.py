@@ -59,8 +59,6 @@ def write_xml_channels(channels, xmltv):
       xmlfile.write('<channel id="%d">\n' % chcount)
       xmlfile.write('  <display-name>%s</display-name>\n' % channel_name)
       xmlfile.write('</channel>\n')
-  xmlfile.close()
-
 
 def write_xml_schedule(chname, chid, title, str_time, end_time):
   chcount = 0
@@ -70,55 +68,34 @@ def write_xml_schedule(chname, chid, title, str_time, end_time):
     else:
       xmlfile.write('<programme channel="%d" start="%s" stop="%s">\n' % (chid, str_time, end_time))
     xmlfile.write('  <title>%s</title>\n</programme>\n' % title.replace('&', '&amp;'))
-  xmlfile.close()
-
 
 def read_jtv(chname, chid):
   ndx = chname + '.ndx'
   pdt = chname + '.pdt'
 
+  ndx_list = []
   with open('jtv/' + ndx, 'rb') as ndx:
+    (ndx_num,) = struct.unpack('H', ndx.read(2))
+
+    for i in range(ndx_num):
+      (_, time, pdt_offset) = struct.unpack('<HQH', ndx.read(12))
+      ndx_list.append((format(ft_to_dt(time), '%Y%m%d%H%M%S'), pdt_offset))
+
+  if ndx_num:
+    pdt_dict = {}
     with open('jtv/' + pdt, 'rb') as pdt:
-      number = struct.unpack('h', ndx.read(2))[0] # Number of records in .ndx file
+      for (time, pdt_offset) in ndx_list:
+        if pdt_offset not in pdt_dict:
+          pdt.seek(pdt_offset)
+          (size,) = struct.unpack('H', pdt.read(2))
 
-      for i in range(number):
-        str_time = 0
-        end_time = 0
+          (title,) = struct.unpack('%ds' % size, pdt.read(size))
+          pdt_dict[pdt_offset] = title.decode(pdt_encode).encode('utf-8')
 
-        ndx.seek((i + 1) * 12 - 8)
-        str_time = struct.unpack('Q', ndx.read(8))[0] # Get program start time in FILETIME format
+    for i in range(ndx_num-1):
+      write_xml_schedule(chname, chid, pdt_dict[ndx_list[i][1]], ndx_list[i][0], ndx_list[i+1][0])
 
-        if i < (number - 1):
-          ndx.seek((i + 2) * 12 - 8)
-          end_time = struct.unpack('Q', ndx.read(8))[0]
-        else:
-          end_time = None # For the last TV-show we know only the start time.
-
-        ndx.seek((i + 1) * 12)
-        pdt_offset = struct.unpack('H', ndx.read(2))[0] # Offset pointer to .pdt file
-
-        pdt.seek(pdt_offset)
-        poffset = struct.unpack('H', pdt.read(2))[0] # Get TV-show's title characters number.
-
-        try:
-          title = struct.unpack('%ds' % poffset, pdt.read(poffset))[0]
-          title = title.decode(pdt_encode).encode('utf-8')
-        except Exception, e:
-          print '\n\n\n\tSomething went wrong!\nFile "%s.pdt" is not fully decoded!\n' % chname
-          print 'Error message:\n%s\n\nDebug information:' % e
-          print 'chname - %s\nndx_offset  - %X\npdt_offset  - %X\npdt_namelen - %X\nfiletime   - %X\n'\
-                 % (chname, 12*i+12, pdt_offset, poffset, str_time)
-          ndx.close()
-          pdt.close()
-          break
-
-        str_time = format(ft_to_dt(str_time), '%Y%m%d%H%M%S')
-        if end_time is not None:
-          end_time = format(ft_to_dt(end_time), '%Y%m%d%H%M%S')
-
-        write_xml_schedule(chname, chid, title, str_time, end_time)
-  ndx.close()
-  pdt.close()
+    write_xml_schedule(chname, chid, pdt_dict[ndx_list[ndx_num-1][1]], ndx_list[ndx_num-1][0], None)
 
 def main():
   ZipFile(jtvzip, 'r').extractall('jtv')
@@ -132,10 +109,9 @@ def main():
 
   with open(xmltv, 'a') as xmlfile:
     xmlfile.write('</tv>\n')
-  xmlfile.close()
 
   sys.stdout.write("\n")
-  print "Done!"
+  print("Done!")
 
 if __name__ == '__main__':
   main()
