@@ -24,13 +24,11 @@ jtvzip = 'jtv.zip'
 xmltv = 'xmltv.xml'
 pdt_encode = 'cp1251'
 
-
 def ft_to_dt(ft):
   microseconds = ft / 10
   seconds, microseconds = divmod(microseconds, 1000000)
   days, seconds = divmod(seconds, 86400)
   return datetime.datetime(1601, 1, 1) + datetime.timedelta(days, seconds, microseconds)
-
 
 def read_jtv_channels(jtvzip):
   jtv = ZipFile(jtvzip, 'r')
@@ -48,7 +46,6 @@ def read_jtv_channels(jtvzip):
 
   jtv.close()
   return channels
-
 
 def write_xml_channels(xmlfile, channels):
   chcount = 0
