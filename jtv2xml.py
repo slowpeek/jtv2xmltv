@@ -50,7 +50,7 @@ def read_jtv_channels(jtvzip):
 
 
 def write_xml_channels(channels, xmltv):
-  chcount = 1000
+  chcount = 0
   with open(xmltv, 'w') as xmlfile:
     xmlfile.write('<?xml version="1.0" encoding="utf8"?>\n<tv>\n')
     for channel_name in channels:
@@ -139,7 +139,7 @@ def main():
   for i in range(len(channels)):
     sys.stdout.write("*")
     sys.stdout.flush()
-    read_jtv(channels[i], i+1001)
+    read_jtv(channels[i], i+1)
 
   with open(xmltv, 'a') as xmlfile:
     xmlfile.write('</tv>\n')
