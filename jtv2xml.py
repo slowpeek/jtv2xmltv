@@ -14,7 +14,7 @@
 #                                        100-nanosecond intervals since January 1, 1601 (UTC).)
 #   * Two bytes - the offset pointer to TV-show characters number title in .pdt file.
 # =======================================================================================================
-import re
+import os
 import sys
 import struct
 import datetime
@@ -35,10 +35,16 @@ def ft_to_dt(ft):
 def read_jtv_channels(jtvzip):
   jtv = ZipFile(jtvzip, 'r')
   channels = []
+  memo = set()
 
   for item in jtv.namelist():
-    if item[-4:] == '.ndx':
-      channels.append(item[:-4])
+    (name, ext) = os.path.splitext(item)
+
+    if ext == '.ndx' or ext == '.pdt':
+      if name in memo:
+        channels.append(name)
+      else:
+        memo.add(name)
 
   jtv.close()
   return channels
