@@ -58,9 +58,9 @@ def write_xml_channels(channels, xmltv):
       chcount += 1
       xmlfile.write('<channel id="%d">\n' % chcount)
       if zip_encode == 'utf-8':
-        xmlfile.write('  <display-name>%s</dispay-name>\n' % channel_name.encode('utf-8'))
+        xmlfile.write('  <display-name>%s</display-name>\n' % channel_name.encode('utf-8'))
       else:
-        xmlfile.write('  <display-name>%s</dispay-name>\n' % channel_name)
+        xmlfile.write('  <display-name>%s</display-name>\n' % channel_name)
       xmlfile.write('</channel>\n')
   xmlfile.close()
 
