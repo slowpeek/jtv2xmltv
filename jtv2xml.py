@@ -22,8 +22,6 @@ from zipfile import *
 
 jtvzip = 'jtv.zip'
 xmltv = 'xmltv.xml'
-zip_encode = 'cp866'
-#zip_encode = 'utf-8'
 pdt_encode = 'cp1251'
 
 
@@ -39,11 +37,8 @@ def read_jtv_channels(jtvzip):
   channels = []
 
   for item in jtv.namelist():
-    if '.ndx' in item:
-      if zip_encode == 'utf-8':
-        channels.append(re.compile('(.*).ndx$').match(item).group(1))
-      else: 
-        channels.append(re.compile('(.*).ndx$').match(item).group(1).decode(zip_encode).encode('utf-8'))
+    if item[-4:] == '.ndx':
+      channels.append(item[:-4])
 
   jtv.close()
   return channels
@@ -56,10 +51,7 @@ def write_xml_channels(channels, xmltv):
     for channel_name in channels:
       chcount += 1
       xmlfile.write('<channel id="%d">\n' % chcount)
-      if zip_encode == 'utf-8':
-        xmlfile.write('  <display-name>%s</display-name>\n' % channel_name.encode('utf-8'))
-      else:
-        xmlfile.write('  <display-name>%s</display-name>\n' % channel_name)
+      xmlfile.write('  <display-name>%s</display-name>\n' % channel_name)
       xmlfile.write('</channel>\n')
   xmlfile.close()
 
@@ -76,12 +68,8 @@ def write_xml_schedule(chname, chid, title, str_time, end_time):
 
 
 def read_jtv(chname, chid):
-  if zip_encode == 'utf-8':
-    ndx = (chname + '.ndx')
-    pdt = (chname + '.pdt')
-  else:
-    ndx = (chname + '.ndx').decode('utf-8').encode(zip_encode)
-    pdt = (chname + '.pdt').decode('utf-8').encode(zip_encode)
+  ndx = chname + '.ndx'
+  pdt = chname + '.pdt'
 
   with open('jtv/' + ndx, 'rb') as ndx:
     with open('jtv/' + pdt, 'rb') as pdt:
@@ -106,14 +94,9 @@ def read_jtv(chname, chid):
         pdt.seek(pdt_offset)
         poffset = struct.unpack('H', pdt.read(2))[0] # Get TV-show's title characters number.
 
-        chars = []
-        title = str()
-        
         try:
-          for j in range(poffset):
-            char = struct.unpack('c', pdt.read(1))[0]
-            chars.append(char.decode(pdt_encode))
-          title = title.join(chars).encode('utf-8')
+          title = struct.unpack('%ds' % poffset, pdt.read(poffset))[0]
+          title = title.decode(pdt_encode).encode('utf-8')
         except Exception, e:
           print '\n\n\n\tSomething went wrong!\nFile "%s.pdt" is not fully decoded!\n' % chname
           print 'Error message:\n%s\n\nDebug information:' % e
