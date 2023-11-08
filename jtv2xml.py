@@ -129,7 +129,7 @@ def read_jtv(chname, chid):
 
 
 def main():
-  ZipFile('jtv.zip', 'r').extractall('jtv')
+  ZipFile(jtvzip, 'r').extractall('jtv')
   channels = read_jtv_channels(jtvzip)
   write_xml_channels(channels, xmltv)
 
