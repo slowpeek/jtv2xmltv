@@ -50,26 +50,23 @@ def read_jtv_channels(jtvzip):
   return channels
 
 
-def write_xml_channels(channels, xmltv):
+def write_xml_channels(xmlfile, channels):
   chcount = 0
-  with open(xmltv, 'w') as xmlfile:
-    xmlfile.write('<?xml version="1.0" encoding="utf8"?>\n<tv>\n')
-    for channel_name in channels:
-      chcount += 1
-      xmlfile.write('<channel id="%d">\n' % chcount)
-      xmlfile.write('  <display-name>%s</display-name>\n' % channel_name)
-      xmlfile.write('</channel>\n')
+  for channel_name in channels:
+    chcount += 1
+    xmlfile.write('<channel id="%d">\n' % chcount)
+    xmlfile.write('  <display-name>%s</display-name>\n' % channel_name)
+    xmlfile.write('</channel>\n')
 
-def write_xml_schedule(chname, chid, title, str_time, end_time):
-  chcount = 0
-  with open(xmltv, 'a') as xmlfile:
-    if end_time is None:
-      xmlfile.write('<programme channel="%d" start="%s">\n' % (chid, str_time))
-    else:
-      xmlfile.write('<programme channel="%d" start="%s" stop="%s">\n' % (chid, str_time, end_time))
-    xmlfile.write('  <title>%s</title>\n</programme>\n' % title.replace('&', '&amp;'))
+def write_xml_schedule(xmlfile, chname, chid, title, str_time, end_time):
+  if end_time is None:
+    xmlfile.write('<programme channel="%d" start="%s">\n' % (chid, str_time))
+  else:
+    xmlfile.write('<programme channel="%d" start="%s" stop="%s">\n' % (chid, str_time, end_time))
 
-def read_jtv(chname, chid):
+  xmlfile.write('  <title>%s</title>\n</programme>\n' % title.replace('&', '&amp;'))
+
+def read_jtv(xmlfile, chname, chid):
   ndx = chname + '.ndx'
   pdt = chname + '.pdt'
 
@@ -93,25 +90,28 @@ def read_jtv(chname, chid):
           pdt_dict[pdt_offset] = title.decode(pdt_encode).encode('utf-8')
 
     for i in range(ndx_num-1):
-      write_xml_schedule(chname, chid, pdt_dict[ndx_list[i][1]], ndx_list[i][0], ndx_list[i+1][0])
+      write_xml_schedule(xmlfile, chname, chid, pdt_dict[ndx_list[i][1]],
+                         ndx_list[i][0], ndx_list[i+1][0])
 
-    write_xml_schedule(chname, chid, pdt_dict[ndx_list[ndx_num-1][1]], ndx_list[ndx_num-1][0], None)
+    write_xml_schedule(xmlfile, chname, chid, pdt_dict[ndx_list[ndx_num-1][1]],
+                       ndx_list[ndx_num-1][0], None)
 
 def main():
   ZipFile(jtvzip, 'r').extractall('jtv')
   channels = read_jtv_channels(jtvzip)
-  write_xml_channels(channels, xmltv)
 
-  for i in range(len(channels)):
-    read_jtv(channels[i], i+1)
+  with open(xmltv, 'w') as xmlfile:
+    xmlfile.write('<?xml version="1.0" encoding="utf8"?>\n<tv>\n')
+    write_xml_channels(xmlfile, channels)
 
-    sys.stdout.write('*')
-    sys.stdout.flush()
+    for i in range(len(channels)):
+      read_jtv(xmlfile, channels[i], i+1)
 
-  with open(xmltv, 'a') as xmlfile:
+      sys.stdout.write('*')
+      sys.stdout.flush()
+
     xmlfile.write('</tv>\n')
-
-  sys.stdout.write('\ndone\n')
+    sys.stdout.write('\ndone\n')
 
 if __name__ == '__main__':
   main()
