@@ -18,7 +18,7 @@ import os
 import sys
 import struct
 import datetime
-from zipfile import *
+from zipfile import ZipFile
 
 jtvzip = 'jtv.zip'
 xmltv = 'xmltv.xml'
