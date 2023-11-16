@@ -63,12 +63,12 @@ def write_xml_schedule(xmlfile, chname, chid, title, str_time, end_time):
 
   xmlfile.write('  <title>%s</title>\n</programme>\n' % title.replace('&', '&amp;'))
 
-def read_jtv(xmlfile, chname, chid):
+def read_jtv(xmlfile, myzip, chname, chid):
   ndx = chname + '.ndx'
   pdt = chname + '.pdt'
 
   ndx_list = []
-  with open('jtv/' + ndx, 'rb') as ndx:
+  with myzip.open(ndx, 'r') as ndx:
     (ndx_num,) = struct.unpack('H', ndx.read(2))
 
     for i in range(ndx_num):
@@ -77,7 +77,7 @@ def read_jtv(xmlfile, chname, chid):
 
   if ndx_num:
     pdt_dict = {}
-    with open('jtv/' + pdt, 'rb') as pdt:
+    with myzip.open(pdt, 'r') as pdt:
       for (time, pdt_offset) in ndx_list:
         if pdt_offset not in pdt_dict:
           pdt.seek(pdt_offset)
@@ -94,21 +94,21 @@ def read_jtv(xmlfile, chname, chid):
                        ndx_list[ndx_num-1][0], None)
 
 def main():
-  ZipFile(jtvzip, 'r').extractall('jtv')
   channels = read_jtv_channels(jtvzip)
 
   with open(xmltv, 'w') as xmlfile:
     xmlfile.write('<?xml version="1.0" encoding="utf8"?>\n<tv>\n')
     write_xml_channels(xmlfile, channels)
 
-    for i in range(len(channels)):
-      read_jtv(xmlfile, channels[i], i+1)
+    with ZipFile(jtvzip) as myzip:
+      for i in range(len(channels)):
+        read_jtv(xmlfile, myzip, channels[i], i+1)
 
-      sys.stdout.write('*')
-      sys.stdout.flush()
+        sys.stdout.write('*')
+        sys.stdout.flush()
 
-    xmlfile.write('</tv>\n')
-    sys.stdout.write('\ndone\n')
+      xmlfile.write('</tv>\n')
+      sys.stdout.write('\ndone\n')
 
 if __name__ == '__main__':
   main()
