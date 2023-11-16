@@ -25,10 +25,7 @@ xmltv = 'xmltv.xml'
 pdt_encode = 'cp1251'
 
 def ft_to_dt(ft):
-    microseconds = ft / 10
-    seconds, microseconds = divmod(microseconds, 1000000)
-    days, seconds = divmod(seconds, 86400)
-    return datetime.datetime(1601, 1, 1) + datetime.timedelta(days, seconds, microseconds)
+    return datetime.datetime(1601, 1, 1) + datetime.timedelta(microseconds=ft/10)
 
 def read_jtv_channels(jtvzip):
     jtv = ZipFile(jtvzip, 'r')
@@ -73,7 +70,7 @@ def read_jtv(xmlfile, myzip, chname, chid):
 
         for i in range(ndx_num):
             (_, time, pdt_offset) = struct.unpack('<HQH', ndx.read(12))
-            ndx_list.append((format(ft_to_dt(time), '%Y%m%d%H%M%S'), pdt_offset))
+            ndx_list.append((ft_to_dt(time).strftime('%Y%m%d%H%M%S'), pdt_offset))
 
     if ndx_num:
         pdt_dict = {}
