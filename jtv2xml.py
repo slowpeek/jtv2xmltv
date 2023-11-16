@@ -84,7 +84,7 @@ def read_jtv(xmlfile, chname, chid):
           (size,) = struct.unpack('H', pdt.read(2))
 
           (title,) = struct.unpack('%ds' % size, pdt.read(size))
-          pdt_dict[pdt_offset] = title.decode(pdt_encode).encode('utf-8')
+          pdt_dict[pdt_offset] = title.decode(pdt_encode)
 
     for i in range(ndx_num-1):
       write_xml_schedule(xmlfile, chname, chid, pdt_dict[ndx_list[i][1]],
