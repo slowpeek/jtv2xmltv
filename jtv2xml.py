@@ -61,11 +61,8 @@ def write_xml_schedule(xmlfile, chname, chid, title, str_time, end_time):
     xmlfile.write('  <title>%s</title>\n</programme>\n' % title.replace('&', '&amp;'))
 
 def read_jtv(xmlfile, myzip, chname, chid):
-    ndx = chname + '.ndx'
-    pdt = chname + '.pdt'
-
     ndx_list = []
-    with myzip.open(ndx, 'r') as ndx:
+    with myzip.open(chname + '.ndx', 'r') as ndx:
         (ndx_num,) = struct.unpack('H', ndx.read(2))
 
         for i in range(ndx_num):
@@ -74,7 +71,7 @@ def read_jtv(xmlfile, myzip, chname, chid):
 
     if ndx_num:
         pdt_dict = {}
-        with myzip.open(pdt, 'r') as pdt:
+        with myzip.open(chname + '.pdt', 'r') as pdt:
             for (time, pdt_offset) in ndx_list:
                 if pdt_offset not in pdt_dict:
                     pdt.seek(pdt_offset)
