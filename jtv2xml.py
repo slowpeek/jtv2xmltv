@@ -19,6 +19,7 @@ import sys
 import struct
 import datetime
 from zipfile import ZipFile
+from xml.etree import ElementTree as ET
 
 jtvzip = 'jtv.zip'
 xmltv = 'xmltv.xml'
@@ -44,23 +45,22 @@ def read_jtv_channels(jtvzip):
     jtv.close()
     return channels
 
-def write_xml_channels(xmlfile, channels):
+def write_xml_channels(doc, channels):
     chcount = 0
     for channel_name in channels:
         chcount += 1
-        xmlfile.write('<channel id="%d">\n' % chcount)
-        xmlfile.write('  <display-name>%s</display-name>\n' % channel_name)
-        xmlfile.write('</channel>\n')
+        el = ET.SubElement(doc, 'channel', id=str(chcount))
+        ET.SubElement(el, 'display-name').text = str(channel_name)
 
-def write_xml_schedule(xmlfile, chname, chid, title, str_time, end_time):
+def write_xml_schedule(doc, chname, chid, title, str_time, end_time):
     if end_time is None:
-        xmlfile.write('<programme channel="%d" start="%s">\n' % (chid, str_time))
+        el = ET.SubElement(doc, 'programme', channel=str(chid), start=str_time)
     else:
-        xmlfile.write('<programme channel="%d" start="%s" stop="%s">\n' % (chid, str_time, end_time))
+        el = ET.SubElement(doc, 'programme', channel=str(chid), start=str_time, stop=end_time)
 
-    xmlfile.write('  <title>%s</title>\n</programme>\n' % title.replace('&', '&amp;'))
+    ET.SubElement(el, 'title').text = title
 
-def read_jtv(xmlfile, myzip, chname, chid):
+def read_jtv(doc, myzip, chname, chid):
     ndx_list = []
     with myzip.open(chname + '.ndx', 'r') as ndx:
         (ndx_num,) = struct.unpack('H', ndx.read(2))
@@ -79,28 +79,29 @@ def read_jtv(xmlfile, myzip, chname, chid):
                     pdt_dict[pdt_offset] = pdt.read(size).decode(pdt_encode)
 
         for i in range(ndx_num-1):
-            write_xml_schedule(xmlfile, chname, chid, pdt_dict[ndx_list[i][1]],
+            write_xml_schedule(doc, chname, chid, pdt_dict[ndx_list[i][1]],
                                ndx_list[i][0], ndx_list[i+1][0])
 
-        write_xml_schedule(xmlfile, chname, chid, pdt_dict[ndx_list[ndx_num-1][1]],
+        write_xml_schedule(doc, chname, chid, pdt_dict[ndx_list[ndx_num-1][1]],
                            ndx_list[ndx_num-1][0], None)
 
 def main():
     channels = read_jtv_channels(jtvzip)
+    doc = ET.Element('tv')
 
-    with open(xmltv, 'w') as xmlfile:
-        xmlfile.write('<?xml version="1.0" encoding="utf8"?>\n<tv>\n')
-        write_xml_channels(xmlfile, channels)
+    write_xml_channels(doc, channels)
 
-        with ZipFile(jtvzip) as myzip:
-            for i in range(len(channels)):
-                read_jtv(xmlfile, myzip, channels[i], i+1)
+    with ZipFile(jtvzip) as myzip:
+        for i in range(len(channels)):
+            read_jtv(doc, myzip, channels[i], i+1)
 
-                sys.stdout.write('*')
-                sys.stdout.flush()
+            sys.stdout.write('*')
+            sys.stdout.flush()
 
-            xmlfile.write('</tv>\n')
-            sys.stdout.write('\ndone\n')
+        sys.stdout.write('\ndone\n')
+
+    ET.indent(doc)
+    ET.ElementTree(doc).write(xmltv, encoding='utf8')
 
 if __name__ == '__main__':
     main()
