@@ -14,26 +14,25 @@
 #                                        100-nanosecond intervals since January 1, 1601 (UTC).)
 #   * Two bytes - the offset pointer to TV-show characters number title in .pdt file.
 # =======================================================================================================
-import os
-import sys
-import struct
 import datetime
-from zipfile import ZipFile
+import os
+import shutil
+import struct
+import sys
+import tempfile
 from xml.etree import ElementTree as ET
+import zipfile
 
-jtvzip = 'jtv.zip'
-xmltv = 'xmltv.xml'
 pdt_encode = 'cp1251'
 
 def ft_to_dt(ft):
     return datetime.datetime(1601, 1, 1) + datetime.timedelta(microseconds=ft/10)
 
-def read_jtv_channels(jtvzip):
-    jtv = ZipFile(jtvzip, 'r')
+def read_jtv_channels(myzip):
     channels = []
     memo = set()
 
-    for item in jtv.namelist():
+    for item in myzip.namelist():
         (name, ext) = os.path.splitext(item)
 
         if ext == '.ndx' or ext == '.pdt':
@@ -42,7 +41,6 @@ def read_jtv_channels(jtvzip):
             else:
                 memo.add(name)
 
-    jtv.close()
     return channels
 
 def write_xml_channels(doc, channels):
@@ -90,22 +88,26 @@ def read_jtv(doc, myzip, chname, chid):
                                ndx_list[i][0], ndx_list[i+1][0])
 
 def main():
-    channels = read_jtv_channels(jtvzip)
-    doc = ET.Element('tv')
+    with tempfile.TemporaryFile() as tmp:
+        shutil.copyfileobj(sys.stdin.buffer, tmp)
 
-    write_xml_channels(doc, channels)
+        with zipfile.ZipFile(tmp) as myzip:
+            channels = read_jtv_channels(myzip)
+            doc = ET.Element('tv')
 
-    with ZipFile(jtvzip) as myzip:
-        for i in range(len(channels)):
-            read_jtv(doc, myzip, channels[i], i+1)
+            write_xml_channels(doc, channels)
 
-            sys.stdout.write('*')
-            sys.stdout.flush()
+            for i in range(len(channels)):
+                read_jtv(doc, myzip, channels[i], i+1)
 
-        sys.stdout.write('\ndone\n')
+                sys.stderr.write('.')
+                sys.stderr.flush()
 
-    ET.indent(doc)
-    ET.ElementTree(doc).write(xmltv, encoding='utf8')
+            sys.stderr.write('\n')
+            sys.stderr.flush()
+
+            ET.indent(doc)
+            ET.ElementTree(doc).write(sys.stdout.buffer, 'utf-8', True)
 
 if __name__ == '__main__':
     main()
