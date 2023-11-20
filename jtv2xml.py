@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 #-*- coding: utf-8 -*-
 # =======================================================================================================
 # PDT file format:
@@ -23,7 +23,8 @@ import tempfile
 from xml.etree import ElementTree as ET
 import zipfile
 
-pdt_encode = 'cp1251'
+pdt_enc = 'cp1251'
+zip_enc = 'cp866'
 
 def ft_to_dt(ft):
     return datetime.datetime(1601, 1, 1) + datetime.timedelta(microseconds=ft/10)
@@ -47,6 +48,9 @@ def write_xml_channels(doc, channels):
     chcount = 0
     for channel_name in channels:
         chcount += 1
+
+        channel_name = channel_name.encode('cp437').decode(zip_enc)
+
         el = ET.SubElement(doc, 'channel', id=str(chcount))
         ET.SubElement(el, 'display-name').text = str(channel_name)
 
@@ -65,7 +69,7 @@ def write_xml_schedule(doc, chname, chid, title, str_time, end_time=None):
 def read_jtv(doc, myzip, chname, chid):
     ndx_list = []
     with myzip.open(chname + '.ndx', 'r') as ndx:
-        (ndx_num,) = struct.unpack('H', ndx.read(2))
+        (ndx_num,) = struct.unpack('<H', ndx.read(2))
 
         for i in range(ndx_num):
             (_, time, pdt_offset) = struct.unpack('<HQH', ndx.read(12))
@@ -77,8 +81,8 @@ def read_jtv(doc, myzip, chname, chid):
             for (time, pdt_offset) in ndx_list:
                 if pdt_offset not in pdt_dict:
                     pdt.seek(pdt_offset)
-                    (size,) = struct.unpack('H', pdt.read(2))
-                    pdt_dict[pdt_offset] = pdt.read(size).decode(pdt_encode)
+                    (size,) = struct.unpack('<H', pdt.read(2))
+                    pdt_dict[pdt_offset] = pdt.read(size).decode(pdt_enc)
 
         # end_time for the last item
         ndx_list.append((None,))
