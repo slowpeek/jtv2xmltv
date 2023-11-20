@@ -14,6 +14,7 @@
 #                                        100-nanosecond intervals since January 1, 1601 (UTC).)
 #   * Two bytes - the offset pointer to TV-show characters number title in .pdt file.
 # =======================================================================================================
+import argparse
 import datetime
 import os
 import shutil
@@ -22,9 +23,6 @@ import sys
 import tempfile
 from xml.etree import ElementTree as ET
 import zipfile
-
-pdt_enc = 'cp1251'
-zip_enc = 'cp866'
 
 def ft_to_dt(ft):
     return datetime.datetime(1601, 1, 1) + datetime.timedelta(microseconds=ft/10)
@@ -44,12 +42,13 @@ def read_jtv_channels(myzip):
 
     return channels
 
-def write_xml_channels(doc, channels):
+def write_xml_channels(doc, channels, enc):
+    if enc.lower() not in ('utf8', 'utf-8'):
+        channels = [x.encode('cp437').decode(enc) for x in channels]
+
     chcount = 0
     for channel_name in channels:
         chcount += 1
-
-        channel_name = channel_name.encode('cp437').decode(zip_enc)
 
         el = ET.SubElement(doc, 'channel', id=str(chcount))
         ET.SubElement(el, 'display-name').text = str(channel_name)
@@ -66,7 +65,7 @@ def write_xml_schedule(doc, chname, chid, title, str_time, end_time=None):
     el = ET.SubElement(doc, 'programme', **attr)
     ET.SubElement(el, 'title').text = title
 
-def read_jtv(doc, myzip, chname, chid):
+def read_jtv(doc, myzip, chname, chid, enc):
     ndx_list = []
     with myzip.open(chname + '.ndx', 'r') as ndx:
         (ndx_num,) = struct.unpack('<H', ndx.read(2))
@@ -82,7 +81,7 @@ def read_jtv(doc, myzip, chname, chid):
                 if pdt_offset not in pdt_dict:
                     pdt.seek(pdt_offset)
                     (size,) = struct.unpack('<H', pdt.read(2))
-                    pdt_dict[pdt_offset] = pdt.read(size).decode(pdt_enc)
+                    pdt_dict[pdt_offset] = pdt.read(size).decode(enc)
 
         # end_time for the last item
         ndx_list.append((None,))
@@ -92,6 +91,20 @@ def read_jtv(doc, myzip, chname, chid):
                                ndx_list[i][0], ndx_list[i+1][0])
 
 def main():
+    parser = argparse.ArgumentParser(
+        prog='jtv2xml',
+        description='Convert jtv zip to xmltv',
+    )
+
+    parser.add_argument('--pdt-enc', required=True,
+                        help='Encoding of program names in pdt')
+    parser.add_argument('--zip-enc', required=True,
+                        help='Encoding of filenames in zip')
+
+    args = parser.parse_args()
+
+    # --
+
     with tempfile.TemporaryFile() as tmp:
         shutil.copyfileobj(sys.stdin.buffer, tmp)
 
@@ -99,16 +112,10 @@ def main():
             channels = read_jtv_channels(myzip)
             doc = ET.Element('tv')
 
-            write_xml_channels(doc, channels)
+            write_xml_channels(doc, channels, args.zip_enc)
 
             for i in range(len(channels)):
-                read_jtv(doc, myzip, channels[i], i+1)
-
-                sys.stderr.write('.')
-                sys.stderr.flush()
-
-            sys.stderr.write('\n')
-            sys.stderr.flush()
+                read_jtv(doc, myzip, channels[i], i+1, args.pdt_enc)
 
             ET.indent(doc)
             ET.ElementTree(doc).write(sys.stdout.buffer, 'utf-8', True)
