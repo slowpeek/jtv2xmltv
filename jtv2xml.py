@@ -52,12 +52,16 @@ def write_xml_channels(doc, channels):
         el = ET.SubElement(doc, 'channel', id=str(chcount))
         ET.SubElement(el, 'display-name').text = str(channel_name)
 
-def write_xml_schedule(doc, chname, chid, title, str_time, end_time):
-    if end_time is None:
-        el = ET.SubElement(doc, 'programme', channel=str(chid), start=str_time)
-    else:
-        el = ET.SubElement(doc, 'programme', channel=str(chid), start=str_time, stop=end_time)
+def write_xml_schedule(doc, chname, chid, title, str_time, end_time=None):
+    attr = {
+        'channel': str(chid),
+        'start': str_time
+    }
 
+    if end_time is not None:
+        attr['stop'] = end_time
+
+    el = ET.SubElement(doc, 'programme', **attr)
     ET.SubElement(el, 'title').text = title
 
 def read_jtv(doc, myzip, chname, chid):
@@ -78,12 +82,12 @@ def read_jtv(doc, myzip, chname, chid):
                     (size,) = struct.unpack('H', pdt.read(2))
                     pdt_dict[pdt_offset] = pdt.read(size).decode(pdt_encode)
 
-        for i in range(ndx_num-1):
+        # end_time for the last item
+        ndx_list.append((None,))
+
+        for i in range(ndx_num):
             write_xml_schedule(doc, chname, chid, pdt_dict[ndx_list[i][1]],
                                ndx_list[i][0], ndx_list[i+1][0])
-
-        write_xml_schedule(doc, chname, chid, pdt_dict[ndx_list[ndx_num-1][1]],
-                           ndx_list[ndx_num-1][0], None)
 
 def main():
     channels = read_jtv_channels(jtvzip)
