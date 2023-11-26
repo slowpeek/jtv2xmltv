@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 bye () {
-    echo "$@"
+    echo "$@" >&2
     exit 1
 }
 
