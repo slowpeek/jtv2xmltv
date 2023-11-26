@@ -1,0 +1,9 @@
+* Usage
+
+#+begin_example
+  jtv2xml.py --pdt-enc PDT_ENC --zip-enc ZIP_ENC < jtv.zip > epg.xml
+#+end_example
+
+Options:
+- =--pdt-enc PDT_ENC= :: Encoding of program names in pdt, required
+- =--zip-enc ZIP_ENC= :: Encoding of filenames in zip, required
