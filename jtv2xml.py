@@ -27,11 +27,11 @@ import zipfile
 def ft_to_dt(ft):
     return datetime.datetime(1601, 1, 1) + datetime.timedelta(microseconds=ft/10)
 
-def read_jtv_channels(myzip):
+def get_channels(jtv):
     channels = []
     memo = set()
 
-    for item in myzip.namelist():
+    for item in jtv.namelist():
         (name, ext) = os.path.splitext(item)
 
         if ext == '.ndx' or ext == '.pdt':
@@ -42,7 +42,7 @@ def read_jtv_channels(myzip):
 
     return channels
 
-def write_xml_channels(doc, channels, enc):
+def xml_channels(doc, channels, enc):
     if enc.lower() not in ('utf8', 'utf-8'):
         channels = [x.encode('cp437').decode(enc) for x in channels]
 
@@ -53,7 +53,7 @@ def write_xml_channels(doc, channels, enc):
         el = ET.SubElement(doc, 'channel', id=str(chcount))
         ET.SubElement(el, 'display-name').text = str(channel_name)
 
-def write_xml_schedule(doc, chname, chid, title, str_time, end_time=None):
+def xml_program_one(doc, chid, title, str_time, end_time=None):
     attr = {
         'channel': str(chid),
         'start': str_time
@@ -65,9 +65,9 @@ def write_xml_schedule(doc, chname, chid, title, str_time, end_time=None):
     el = ET.SubElement(doc, 'programme', **attr)
     ET.SubElement(el, 'title').text = title
 
-def read_jtv(doc, myzip, chname, chid, enc):
+def xml_program(doc, jtv, chname, chid, enc):
     ndx_list = []
-    with myzip.open(chname + '.ndx', 'r') as ndx:
+    with jtv.open(chname + '.ndx', 'r') as ndx:
         (ndx_num,) = struct.unpack('<H', ndx.read(2))
 
         for i in range(ndx_num):
@@ -76,7 +76,7 @@ def read_jtv(doc, myzip, chname, chid, enc):
 
     if ndx_num:
         pdt_dict = {}
-        with myzip.open(chname + '.pdt', 'r') as pdt:
+        with jtv.open(chname + '.pdt', 'r') as pdt:
             for (time, pdt_offset) in ndx_list:
                 if pdt_offset not in pdt_dict:
                     pdt.seek(pdt_offset)
@@ -87,8 +87,7 @@ def read_jtv(doc, myzip, chname, chid, enc):
         ndx_list.append((None,))
 
         for i in range(ndx_num):
-            write_xml_schedule(doc, chname, chid, pdt_dict[ndx_list[i][1]],
-                               ndx_list[i][0], ndx_list[i+1][0])
+            xml_program_one(doc, chid, pdt_dict[ndx_list[i][1]], ndx_list[i][0], ndx_list[i+1][0])
 
 def main():
     parser = argparse.ArgumentParser(
@@ -108,14 +107,14 @@ def main():
     with tempfile.TemporaryFile() as tmp:
         shutil.copyfileobj(sys.stdin.buffer, tmp)
 
-        with zipfile.ZipFile(tmp) as myzip:
-            channels = read_jtv_channels(myzip)
+        with zipfile.ZipFile(tmp) as jtv:
+            channels = get_channels(jtv)
             doc = ET.Element('tv')
 
-            write_xml_channels(doc, channels, args.zip_enc)
+            xml_channels(doc, channels, args.zip_enc)
 
             for i in range(len(channels)):
-                read_jtv(doc, myzip, channels[i], i+1, args.pdt_enc)
+                xml_program(doc, jtv, channels[i], i+1, args.pdt_enc)
 
             ET.indent(doc)
             ET.ElementTree(doc).write(sys.stdout.buffer, 'utf-8', True)
