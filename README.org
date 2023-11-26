@@ -7,3 +7,10 @@
 Options:
 - =--pdt-enc PDT_ENC= :: Encoding of program names in pdt, required
 - =--zip-enc ZIP_ENC= :: Encoding of filenames in zip, required
+
+* Requirements
+
+- python 3.9 (for [[https://docs.python.org/3/library/xml.etree.elementtree.html#xml.etree.ElementTree.indent][xml.etree.ElementTree.indent]])
+
+  Alternative for older systems (like ubuntu focal with python 3.8): use the
+  =run-docker.sh= wrapper.
