@@ -92,7 +92,7 @@ def xml_program(doc, jtv, chname, chid, enc):
 def main():
     parser = argparse.ArgumentParser(
         prog='jtv2xml.py',
-        description='Convert jtv zip to xmltv',
+        description='Convert jtv zip (stdin) to xmltv (stdout)',
     )
 
     parser.add_argument('--pdt-enc', required=True,
