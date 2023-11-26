@@ -25,4 +25,4 @@ opt=(
     sh -c "python3 script.py ${*@Q} < jtv.zip"
 )
 
-docker run "${opt[@]}"
+exec docker run "${opt[@]}"
