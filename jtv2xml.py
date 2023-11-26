@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
-#-*- coding: utf-8 -*-
-# =======================================================================================================
-# PDT file format:
-# The file is always starts with "JTV 3.x TV Program Data" folowed by three characters with the code 0Ah.
-# Starting from 01Ah offset there are the records with the variable length:
-#  * 2 bytes - the number of characters in the TV-show title
-#  * TV-show title
-#
-# NDX file format:
-# The first two bytes is the number of records in .ndx file. Than there are 12 bytes records:
-#   * First two bytes is always 0
-#   * Eight bytes of FILETIME structure (Contains a 64-bit value representing the number of
-#                                        100-nanosecond intervals since January 1, 1601 (UTC).)
-#   * Two bytes - the offset pointer to TV-show characters number title in .pdt file.
-# =======================================================================================================
+
+# NDX format:
+# - 16 bit uint = number or records
+# - list:
+#   - 2 x 0x00
+#   - 64-bit uint = number of 100-ns intervals since Jan 1, 1601 UTC
+#   - 16-bit uint = offset of the corresponding PDT record in the pdt file
+
+# PDT format:
+# - literal 'JTV 3.x TV Program Data'
+# - 3 x 0xA0
+# - list:
+#   - 16-bit uint = title length
+#   - title
+
 import argparse
 import datetime
 import os
@@ -91,7 +91,7 @@ def xml_program(doc, jtv, chname, chid, enc):
 
 def main():
     parser = argparse.ArgumentParser(
-        prog='jtv2xml',
+        prog='jtv2xml.py',
         description='Convert jtv zip to xmltv',
     )
 
