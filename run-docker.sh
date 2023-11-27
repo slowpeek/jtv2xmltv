@@ -17,7 +17,7 @@ jtv=$(realpath "$1")
 shift
 
 opt=(
-    -it --rm --init
+    --rm --init
     -v "$jtv":/workdir/jtv.zip:ro
     -v "${self_dir}/jtv2xml.py":/workdir/script.py:ro
     -w /workdir
